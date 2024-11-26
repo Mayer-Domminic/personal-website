@@ -1,15 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'export',  // Required for static deployment on Netlify
+  output: 'export',
   images: {
-    unoptimized: true, // Required for static export
+    unoptimized: true,
   },
-  // If you're using rewrites/redirects, they should be defined here
-  // Remove this if you don't need them
-  async rewrites() {
-    return [];
-  }
+  distDir: 'out',
+  trailingSlash: true,
 };
 
 export default nextConfig;
