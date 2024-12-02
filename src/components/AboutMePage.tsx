@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Globe from 'react-globe.gl';
 import { Terminal } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const TypewriterText = ({ text, delay = 50 }) => {
-  const [displayText, setDisplayText] = useState('');
+  const [displayText, setDisplayText] = useState(&apos;&apos;);
   
   useEffect(() => {
     let i = 0;
@@ -26,7 +26,7 @@ const TypewriterText = ({ text, delay = 50 }) => {
 const GlobeVisualization = () => {
   const [points, setPoints] = useState([]);
   
-  const visitedLocations = [
+  const visitedLocations = useMemo(() => [
     { name: "California", lat: 36.7783, lng: -119.4179, type: "visited" },
     { name: "Nevada", lat: 39.5501, lng: -116.7502, type: "visited" },
     { name: "Idaho", lat: 44.0682, lng: -114.7420, type: "visited" },
@@ -46,17 +46,18 @@ const GlobeVisualization = () => {
     { name: "Toronto", lat: 43.6532, lng: -79.3832, type: "dream" },
     { name: "New York City", lat: 40.7128, lng: -74.0060, type: "dream" },
     { name: "Cabo San Lucas", lat: 22.8905, lng: -109.9167, type: "visited" }
-  ];
+  ], []);
 
   useEffect(() => {
-    setPoints(visitedLocations.map(loc => ({
+    const locations = visitedLocations.map(loc => ({
       lat: loc.lat,
       lng: loc.lng,
       size: 0.5,
-      color: loc.type === 'visited' ? '#60A5FA' : '#F87171',
+      color: loc.type === "visited" ? "#60A5FA" : "#F87171",
       label: loc.name
-    })));
-  }, []);
+    }));
+    setPoints(locations);
+  }, [visitedLocations]);
 
   return (
     <div className="h-[600px] w-full">
@@ -87,7 +88,6 @@ const AboutMePage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white">
-      {/* Navigation */}
       <nav className="container mx-auto p-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -97,16 +97,15 @@ const AboutMePage = () => {
         </div>
       </nav>
 
-      {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8 font-mono">
             <span className="text-blue-400">const</span>{' '}
             <span className="text-purple-400">aboutMe</span>{' '}
             <span className="text-blue-400">=</span>{' '}
-            <span className="text-green-400">'</span>
+            <span className="text-green-400">&quot;</span>
             <TypewriterText text="Get to know me" />
-            <span className="text-green-400">'</span>
+            <span className="text-green-400">&quot;</span>
           </div>
 
           <div className={`transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
@@ -116,8 +115,8 @@ const AboutMePage = () => {
               </CardHeader>
               <CardContent className="text-gray-300">
                 <p className="mb-4">
-                  Through my travels, I've gained unique perspectives that influence my approach to problem-solving 
-                  and development. Below you'll find a visualization of places I've visited and dream destinations 
+                  Through my travels, I&apos;ve gained unique perspectives that influence my approach to problem-solving 
+                  and development. Below you&apos;ll find a visualization of places I&apos;ve visited and dream destinations 
                   that inspire my journey.
                 </p>
               </CardContent>
@@ -130,7 +129,7 @@ const AboutMePage = () => {
             <div className="flex gap-4 mt-4">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full bg-blue-400"></div>
-                <span className="text-gray-300">Places I've Visited</span>
+                <span className="text-gray-300">Places I&apos;ve Visited</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full bg-red-400"></div>

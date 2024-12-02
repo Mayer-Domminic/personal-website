@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import dynamic from 'next/dynamic';
 
 const TypewriterText = ({ text, delay = 50 }) => {
-  const [displayText, setDisplayText] = useState('');
+  const [displayText, setDisplayText] = useState(&apos;&apos;);
   
   useEffect(() => {
     let i = 0;
@@ -149,9 +149,9 @@ const PortfolioPage = () => {
             <span className="text-blue-400">const</span>{' '}
             <span className="text-purple-400">developer</span>{' '}
             <span className="text-blue-400">=</span>{' '}
-            <span className="text-green-400">'</span>
+            <span className="text-green-400">&quot;</span>
             <TypewriterText text="Doomminic Mayer" />
-            <span className="text-green-400">'</span>
+            <span className="text-green-400">&quot;</span>
           </div>
 
           <h1 className={`text-4xl md:text-6xl font-bold mb-6 transition-opacity duration-1000 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
