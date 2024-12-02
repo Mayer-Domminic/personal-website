@@ -5,8 +5,40 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import dynamic from 'next/dynamic';
 
-const TypewriterText = ({ text, delay = 50 }) => {
-  const [displayText, setDisplayText] = useState(&apos;&apos;);
+const AboutMePage = dynamic(() => import('@/components/AboutMePage'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[600px] w-full flex items-center justify-center bg-gray-800/50">
+      <div className="text-blue-400">Loading visualization...</div>
+    </div>
+  )
+});
+
+interface TypewriterTextProps {
+  text: string;
+  delay?: number;
+}
+
+interface Project {
+  title: string;
+  description: string;
+  techStack: string[];
+  githubUrl: string;
+  liveUrl: string;
+}
+
+interface ProjectCardProps {
+  project: Project;
+}
+
+interface Hobby {
+  title: string;
+  description: string;
+  icon: string;
+}
+
+const TypewriterText: React.FC<TypewriterTextProps> = ({ text, delay = 50 }) => {
+  const [displayText, setDisplayText] = useState('');
   
   useEffect(() => {
     let i = 0;
@@ -25,12 +57,7 @@ const TypewriterText = ({ text, delay = 50 }) => {
   return <span>{displayText}</span>;
 };
 
-const GlobeVisualization = dynamic(
-  () => import('@/components/GlobeVisualization'),
-  { ssr: false }
-);
-
-const hobbies = [
+const hobbies: Hobby[] = [
   {
     title: "Competitive Gaming",
     description: "Pushing the limits in strategic games, focusing on team coordination and split-second decision making.",
@@ -53,7 +80,7 @@ const hobbies = [
   }
 ];
 
-const projects = [
+const projects: Project[] = [
   {
     title: 'Medpass',
     description: 'Medical dashboard for studying with integrated AI assistance and comprehensive learning analytics.',
@@ -77,7 +104,7 @@ const projects = [
   }
 ];
 
-const ProjectCard = ({ project }) => {
+const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
   return (
     <Card className="bg-gray-800/50 border-gray-700 hover:border-blue-500 transition-all duration-300 transform hover:-translate-y-1">
       <CardHeader>
@@ -149,9 +176,9 @@ const PortfolioPage = () => {
             <span className="text-blue-400">const</span>{' '}
             <span className="text-purple-400">developer</span>{' '}
             <span className="text-blue-400">=</span>{' '}
-            <span className="text-green-400">&quot;</span>
+            <span className="text-green-400">'</span>
             <TypewriterText text="Doomminic Mayer" />
-            <span className="text-green-400">&quot;</span>
+            <span className="text-green-400">'</span>
           </div>
 
           <h1 className={`text-4xl md:text-6xl font-bold mb-6 transition-opacity duration-1000 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
@@ -215,7 +242,7 @@ const PortfolioPage = () => {
               </Card>
 
               <div className="mb-8">
-                <GlobeVisualization />
+                <AboutMePage />
               </div>
 
               <div className="flex gap-4 mt-4">
