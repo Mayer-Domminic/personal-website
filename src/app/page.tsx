@@ -1,6 +1,6 @@
-'use client';
-import PortfolioPage from '@/components/PortfolioPage';
+
+import { LandingPage } from "@/components/LandingPage";
 
 export default function Home() {
-  return <PortfolioPage />;
+  return <LandingPage />;
 }
