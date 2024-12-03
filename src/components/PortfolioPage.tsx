@@ -156,12 +156,12 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
       </CardContent>
       <CardFooter className="flex gap-4">
         <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" 
-           className="flex items-center gap-2 text-gray-300 hover:text-blue-400 transition-colors">
+           className="flex items-center gap-2 text-purple-400 hover:text-blue-400 transition-colors">
           <Github className="h-5 w-5" />
           Code
         </a>
         <a href={project.liveUrl} target="_blank" rel="noopener noreferrer"
-           className="flex items-center gap-2 text-gray-300 hover:text-blue-400 transition-colors">
+           className="flex items-center gap-2 text-purple-400 hover:text-blue-400 transition-colors">
           <ExternalLink className="h-5 w-5" />
           Live Demo
         </a>
@@ -223,10 +223,16 @@ const PortfolioPage = () => {
             </span>
           </h1>
 
+          <p className={`text-xl text-gray-300 mb-8 transition-opacity duration-1000 delay-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+            A leadership-driven software engineer passionate about building innovative solutions 
+            through technology. Focused on creating impactful applications that combine technical 
+            excellence with practical utility.
+          </p>
+
           {/* Projects Section */}
           <div className={`transition-all duration-1000 delay-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <h2 className="text-3xl font-bold mb-8">Featured Projects</h2>
-            <div className="grid grid-cols-1 gap-6 mb-20">
+            <div className="grid grid-cols-1 gap-6 mb-10">
               {projects.map((project, index) => (
                 <ProjectCard key={index} project={project} />
               ))}
@@ -261,7 +267,7 @@ const PortfolioPage = () => {
                 <TypewriterText text="Leearn more" />
                 <span className="text-green-400">'</span>
               </div>
-              
+
               <div className="mt-10">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {hobbies.map((hobby, index) => (
