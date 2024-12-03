@@ -229,6 +229,20 @@ const PortfolioPage = () => {
             excellence with practical utility.
           </p>
 
+          <div className={`flex gap-4 mb-20 transition-all duration-1000 delay-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            <Button className="bg-blue-600 hover:bg-blue-700 transform hover:scale-105 transition-all">
+              <a href="mailto:domminicmayer@gmail.com"
+                 className="transform hover:scale-110 transition-transform">
+                Contact Me
+              </a>
+            </Button>
+            <Button variant="outline" className="border-blue-600 text-blue-400 transform hover:scale-105 transition-all" asChild>
+              <a href="/Domminic_Mayer_Resume.pdf" download>
+                <Download className="mr-2 h-4 w-4" /> Download Resume
+              </a>
+            </Button>
+          </div>
+
           {/* Projects Section */}
           <div className={`transition-all duration-1000 delay-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <h2 className="text-3xl font-bold mb-8">Featured Projects</h2>
