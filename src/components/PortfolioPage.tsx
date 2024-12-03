@@ -1,18 +1,81 @@
 import React, { useEffect, useState } from 'react';
-import { Github, Linkedin, Mail, Download, Terminal, ExternalLink } from 'lucide-react';
+import { 
+  Github, 
+  Linkedin, 
+  Mail, 
+  Terminal, 
+  ExternalLink,
+  ArrowRight,
+  Compass,
+  Dumbbell,
+  Camera,
+  Brain
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import dynamic from 'next/dynamic';
 
-const AboutMePage = dynamic(() => import('@/components/AboutMePage'), {
+interface Hobby {
+  title: string;
+  description: string;
+  icon: React.FC<{ className?: string }>;
+  action?: {
+    text: string;
+    link: string;
+  };
+}
+
+const hobbies: Hobby[] = [
+  {
+    title: "Adventures",
+    description: "Exploring through traveling, dirt bike riding, hiking, and long car drives. Each journey brings new perspectives and experiences.",
+    icon: Compass,
+    action: {
+      text: "Check out some",
+      link: "#globe-section"
+    }
+  },
+  {
+    title: "Improvement",
+    description: "Dedicated to personal growth through gym training, exploring new recipes in cooking, and expanding knowledge through reading.",
+    icon: Dumbbell,
+    action: {
+      text: "Check out my reading list",
+      link: "#reading-section"
+    }
+  },
+  {
+    title: "Photography",
+    description: "Capturing moments through various lenses - from travel photography to dirt bike adventures and artistic cinematography.",
+    icon: Camera,
+    action: {
+      text: "View some photo dumps",
+      link: "#photo-section"
+    }
+  },
+  {
+    title: "Learning",
+    description: "Constantly expanding horizons by studying new languages, building projects, and mastering new frameworks and programming languages.",
+    icon: Brain,
+    action: {
+      text: "Explore my roadmap",
+      link: "#projects-section"
+    }
+  }
+];
+
+
+const CustomGlobe = dynamic(() => import('@/components/CustomGlobe'), {
   ssr: false,
   loading: () => (
-    <div className="h-[600px] w-full flex items-center justify-center bg-gray-800/50">
+    <div className="h-[500px] w-full flex items-center justify-center bg-gray-800/50">
       <div className="text-blue-400">Loading visualization...</div>
     </div>
   )
 });
+
+
 
 interface TypewriterTextProps {
   text: string;
@@ -29,12 +92,6 @@ interface Project {
 
 interface ProjectCardProps {
   project: Project;
-}
-
-interface Hobby {
-  title: string;
-  description: string;
-  icon: string;
 }
 
 const TypewriterText: React.FC<TypewriterTextProps> = ({ text, delay = 50 }) => {
@@ -56,29 +113,6 @@ const TypewriterText: React.FC<TypewriterTextProps> = ({ text, delay = 50 }) => 
   
   return <span>{displayText}</span>;
 };
-
-const hobbies: Hobby[] = [
-  {
-    title: "Competitive Gaming",
-    description: "Pushing the limits in strategic games, focusing on team coordination and split-second decision making.",
-    icon: "🎮"
-  },
-  {
-    title: "Weightlifting",
-    description: "Dedicated to personal growth through discipline and consistent training.",
-    icon: "💪"
-  },
-  {
-    title: "Photography",
-    description: "Capturing moments and perspectives through both digital and film mediums.",
-    icon: "📸"
-  },
-  {
-    title: "Music Production",
-    description: "Creating electronic music and exploring sound design in my free time.",
-    icon: "🎵"
-  }
-];
 
 const projects: Project[] = [
   {
@@ -149,29 +183,30 @@ const PortfolioPage = () => {
       <nav className="container mx-auto p-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Terminal className="h-6 w-6 text-blue-400" />
+            <Terminal className="h-6 w-6 text-purple-400" />
             <span className="text-2xl font-bold">domm.dev</span>
           </div>
           <div className="flex gap-4">
             <a href="https://github.com/mayer-domminic" target="_blank" rel="noopener noreferrer"
-               className="transform hover:scale-110 transition-transform">
+               className="transform hover:scale-110 transition-transform text-purple-400">
               <Github className="h-6 w-6 hover:text-blue-400 transition-colors" />
             </a>
             <a href="https://www.linkedin.com/in/domminicm/" target="_blank" rel="noopener noreferrer"
-               className="transform hover:scale-110 transition-transform">
+               className="transform hover:scale-110 transition-transform text-purple-400">
               <Linkedin className="h-6 w-6 hover:text-blue-400 transition-colors" />
             </a>
             <a href="mailto:domminicmayer@gmail.com"
-               className="transform hover:scale-110 transition-transform">
+               className="transform hover:scale-110 transition-transform text-purple-400">
               <Mail className="h-6 w-6 hover:text-blue-400 transition-colors" />
             </a>
           </div>
         </div>
       </nav>
 
-      {/* Hero Content */}
+      {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
+          {/* Hero Section */}
           <div className="mb-8 font-mono">
             <span className="text-blue-400">const</span>{' '}
             <span className="text-purple-400">developer</span>{' '}
@@ -188,26 +223,6 @@ const PortfolioPage = () => {
             </span>
           </h1>
 
-          <p className={`text-xl text-gray-300 mb-8 transition-opacity duration-1000 delay-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
-            A leadership-driven software engineer passionate about building innovative solutions 
-            through technology. Focused on creating impactful applications that combine technical 
-            excellence with practical utility.
-          </p>
-
-          <div className={`flex gap-4 mb-20 transition-all duration-1000 delay-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-            <Button className="bg-blue-600 hover:bg-blue-700 transform hover:scale-105 transition-all">
-              <a href="mailto:domminicmayer@gmail.com"
-                 className="transform hover:scale-110 transition-transform">
-                Contact Me
-              </a>
-            </Button>
-            <Button variant="outline" className="border-blue-600 text-blue-400 transform hover:scale-105 transition-all" asChild>
-              <a href="/Domminic_Mayer_Resume.pdf" download>
-                <Download className="mr-2 h-4 w-4" /> Download Resume
-              </a>
-            </Button>
-          </div>
-
           {/* Projects Section */}
           <div className={`transition-all duration-1000 delay-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <h2 className="text-3xl font-bold mb-8">Featured Projects</h2>
@@ -217,56 +232,37 @@ const PortfolioPage = () => {
               ))}
             </div>
 
-            {/* Get to Know Me Section */}
-            <div className={`transition-all duration-1000 delay-800 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            {/* Globe Section */}
+            <div id="globe-section" className={`transition-all duration-1000 delay-800 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               <div className="mb-8 font-mono">
                 <span className="text-blue-400">const</span>{' '}
-                <span className="text-purple-400">aboutMe</span>{' '}
+                <span className="text-purple-400">whereAmI</span>{' '}
                 <span className="text-blue-400">=</span>{' '}
                 <span className="text-green-400">'</span>
-                <TypewriterText text="Get to know me" />
+                <TypewriterText text="Fiind me" />
                 <span className="text-green-400">'</span>
               </div>
 
               <Card className="bg-gray-800/50 border-gray-700 mb-8">
                 <CardHeader>
-                  <CardTitle className="text-2xl text-white">My Journey</CardTitle>
+                  <CardTitle className="text-2xl text-white">All Around The World</CardTitle>
                 </CardHeader>
-                <CardContent className="text-gray-300">
-                  <p className="mb-4">
-                    Through my travels, I've gained unique perspectives that influence my approach to problem-solving 
-                    and development. Below you'll find a visualization of places I've visited and dream destinations 
-                    that inspire my journey.
-                  </p>
+                <CardContent>
+                <CustomGlobe />
                 </CardContent>
               </Card>
 
-              <div className="mb-8">
-                <AboutMePage />
+              {/* Hobbies Section */}
+              <div className="mb-8 font-mono">
+                <span className="text-blue-400">const</span>{' '}
+                <span className="text-purple-400">interests</span>{' '}
+                <span className="text-blue-400">=</span>{' '}
+                <span className="text-green-400">'</span>
+                <TypewriterText text="Leearn more" />
+                <span className="text-green-400">'</span>
               </div>
-
-              <div className="flex gap-4 mt-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-blue-400"></div>
-                  <span className="text-gray-300">Places I've Visited</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-red-400"></div>
-                  <span className="text-gray-300">Dream Destinations</span>
-                </div>
-              </div>
-
-              {/* Personal Section */}
-              <div className="mt-20 mb-20">
-                <div className="mb-8 font-mono">
-                  <span className="text-blue-400">const</span>{' '}
-                  <span className="text-purple-400">interests</span>{' '}
-                  <span className="text-blue-400">=</span>{' '}
-                  <span className="text-green-400">'</span>
-                  <TypewriterText text="Beyond the Code" />
-                  <span className="text-green-400">'</span>
-                </div>
-
+              
+              <div className="mt-10">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {hobbies.map((hobby, index) => (
                     <Card 
@@ -275,17 +271,24 @@ const PortfolioPage = () => {
                     >
                       <CardHeader>
                         <div className="flex items-center gap-3">
-                          <span className="text-4xl">{hobby.icon}</span>
+                          {/* Render the Lucide icon component */}
+                          <hobby.icon className="h-6 w-6 text-purple-400" />
                           <CardTitle className="text-xl text-white">{hobby.title}</CardTitle>
                         </div>
                       </CardHeader>
                       <CardContent>
                         <p className="text-gray-300">{hobby.description}</p>
+                        {hobby.action && (
+                          <a href={hobby.action.link} className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 mt-4">
+                            {hobby.action.text} <ArrowRight className="h-4 w-4" />
+                          </a>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               </div>
+
             </div>
           </div>
         </div>
