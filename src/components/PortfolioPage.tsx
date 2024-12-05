@@ -24,7 +24,7 @@ interface Hobby {
     text: string;
     link: string;
   };
-}
+} 
 
 const hobbies: Hobby[] = [
   {
