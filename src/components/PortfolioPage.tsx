@@ -238,7 +238,7 @@ const PortfolioPage = () => {
               </a>
             </Button>
             <Button variant="outline" className="border-blue-600 text-blue-400 transform hover:scale-105 transition-all" asChild>
-              <a href="/Domminic_Mayer_Resume.pdf" download>
+              <a href="" download>
                 <Download className="mr-2 h-4 w-4" /> Download Resume
               </a>
             </Button>
