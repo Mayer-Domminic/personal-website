@@ -1,4 +1,4 @@
- import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Github, 
   Linkedin, 
@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import dynamic from 'next/dynamic';
+import Navbar from '@/components/Navbar';
 
 interface Hobby {
   title: string;
@@ -51,8 +52,8 @@ const hobbies: Hobby[] = [
     description: "Capturing moments through various lenses - from travel photography to dirt bike adventures and artistic cinematography.",
     icon: Camera,
     action: {
-      text: "View some photo dumps",
-      link: "#photo-section"
+      text: "View my photos",
+      link: "/interests/gallery"
     }
   },
   {
@@ -75,8 +76,6 @@ const CustomGlobe = dynamic(() => import('@/components/CustomGlobe'), {
     </div>
   )
 });
-
-
 
 interface TypewriterTextProps {
   text: string;
@@ -171,7 +170,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
   );
 };
 
-const PortfolioPage = () => {
+const PortfolioPage: React.FC = () => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -181,28 +180,7 @@ const PortfolioPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white">
       {/* Navigation */}
-      <nav className="container mx-auto p-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Terminal className="h-6 w-6 text-purple-400" />
-            <span className="text-2xl font-bold">domm.dev</span>
-          </div>
-          <div className="flex gap-4">
-            <a href="https://github.com/mayer-domminic" target="_blank" rel="noopener noreferrer"
-               className="transform hover:scale-110 transition-transform text-purple-400">
-              <Github className="h-6 w-6 hover:text-blue-400 transition-colors" />
-            </a>
-            <a href="https://www.linkedin.com/in/domminicm/" target="_blank" rel="noopener noreferrer"
-               className="transform hover:scale-110 transition-transform text-purple-400">
-              <Linkedin className="h-6 w-6 hover:text-blue-400 transition-colors" />
-            </a>
-            <a href="mailto:domminicmayer@gmail.com"
-               className="transform hover:scale-110 transition-transform text-purple-400">
-              <Mail className="h-6 w-6 hover:text-blue-400 transition-colors" />
-            </a>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
@@ -213,7 +191,7 @@ const PortfolioPage = () => {
             <span className="text-purple-400">developer</span>{' '}
             <span className="text-blue-400">=</span>{' '}
             <span className="text-green-400">'</span>
-            <TypewriterText text="Doomminic Mayer" />
+            <TypewriterText text="Domminic Mayer" />
             <span className="text-green-400">'</span>
           </div>
 
@@ -238,14 +216,14 @@ const PortfolioPage = () => {
               </a>
             </Button>
             <Button variant="outline" className="border-blue-600 text-blue-400 transform hover:scale-105 transition-all" asChild>
-              <a href="" download>
+              <a href="Domminic_Mayer_Resume.pdf" download>
                 <Download className="mr-2 h-4 w-4" /> Download Resume
               </a>
             </Button>
           </div>
 
           {/* Projects Section */}
-          <div className={`transition-all duration-1000 delay-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+          <div id="projects-section" className={`transition-all duration-1000 delay-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <h2 className="text-3xl font-bold mb-8">Featured Projects</h2>
             <div className="grid grid-cols-1 gap-6 mb-10">
               {projects.map((project, index) => (
@@ -260,16 +238,16 @@ const PortfolioPage = () => {
                 <span className="text-purple-400">whereAmI</span>{' '}
                 <span className="text-blue-400">=</span>{' '}
                 <span className="text-green-400">'</span>
-                <TypewriterText text="Fiind me" />
+                <TypewriterText text="Find me" />
                 <span className="text-green-400">'</span>
               </div>
 
-              <Card className="bg-gray-800/50 border-gray-700 mb-8">
+              <Card className="bg-gray-800/50 border-gray-700 mb-16">
                 <CardHeader>
                   <CardTitle className="text-2xl text-white">All Around The World</CardTitle>
                 </CardHeader>
                 <CardContent>
-                <CustomGlobe />
+                  <CustomGlobe />
                 </CardContent>
               </Card>
 
@@ -279,11 +257,11 @@ const PortfolioPage = () => {
                 <span className="text-purple-400">interests</span>{' '}
                 <span className="text-blue-400">=</span>{' '}
                 <span className="text-green-400">'</span>
-                <TypewriterText text="Leearn more" />
+                <TypewriterText text="Learn more" />
                 <span className="text-green-400">'</span>
               </div>
 
-              <div className="mt-10">
+              <div className="mt-10 mb-16">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {hobbies.map((hobby, index) => (
                     <Card 
@@ -309,7 +287,6 @@ const PortfolioPage = () => {
                   ))}
                 </div>
               </div>
-
             </div>
           </div>
         </div>

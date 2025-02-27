@@ -1,67 +1,153 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useReducer, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   ChevronLeft, 
   ChevronRight, 
   X, 
-  Maximize, 
-  Minimize,
-  Info,
-  RotateCcw,
-  Github,
-  FileText,
-  Folder,
-  FolderOpen,
-  Menu,
-  ExternalLink
+  Camera
 } from "lucide-react";
-import { motion, AnimatePresence, useSpring } from 'framer-motion';
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
 
 // Define our data structure
 interface ImageCategory {
-  description: string;
   images: string[];
-  date?: string;
 }
 
 interface ImageData {
   [category: string]: ImageCategory;
 }
 
-interface GitHubFile {
-  path: string;
-  type: string;
-  sha: string;
-  size?: number;
-  url?: string;
-  content?: string;
-  download_url?: string;
+// Combined state using reducer pattern
+interface GalleryState {
+  selectedCategory: string | null;
+  openCategoryId: string | null;
+  currentImageIndex: number;
+  imagePosition: { x: number, y: number };
+  dragInfo: {
+    isDragging: boolean;
+    startX: number;
+    translateX: number;
+  };
+  loadedImages: Record<string, boolean>;
+  scrollPosition: number;
 }
 
-const PhotoAndObsidianViewer: React.FC = () => {
-  // Your image data
+type GalleryAction = 
+  | { type: 'OPEN_CATEGORY', payload: { category: string, scrollY: number } }
+  | { type: 'CLOSE_CATEGORY' }
+  | { type: 'SET_CURRENT_IMAGE', payload: number }
+  | { type: 'NEXT_IMAGE' }
+  | { type: 'PREV_IMAGE' }
+  | { type: 'RESET_IMAGE_POSITION' }
+  | { type: 'UPDATE_IMAGE_POSITION', payload: { x: number, y: number } }
+  | { type: 'START_DRAG', payload: number }
+  | { type: 'UPDATE_DRAG', payload: number }
+  | { type: 'END_DRAG', payload?: 'next' | 'prev' }
+  | { type: 'SET_IMAGE_LOADED', payload: { src: string, loaded: boolean } };
+
+const initialState: GalleryState = {
+  selectedCategory: null,
+  openCategoryId: null,
+  currentImageIndex: 0,
+  imagePosition: { x: 0, y: 0 },
+  dragInfo: {
+    isDragging: false,
+    startX: 0,
+    translateX: 0
+  },
+  loadedImages: {},
+  scrollPosition: 0
+};
+
+function galleryReducer(state: GalleryState, action: GalleryAction): GalleryState {
+  switch (action.type) {
+    case 'OPEN_CATEGORY':
+      return {
+        ...state,
+        openCategoryId: action.payload.category,
+        selectedCategory: action.payload.category,
+        currentImageIndex: 0,
+        imagePosition: { x: 0, y: 0 },
+        scrollPosition: action.payload.scrollY
+      };
+    case 'CLOSE_CATEGORY':
+      return {
+        ...state,
+        selectedCategory: null,
+        openCategoryId: null
+      };
+    case 'SET_CURRENT_IMAGE':
+      return {
+        ...state,
+        currentImageIndex: action.payload,
+        imagePosition: { x: 0, y: 0 }
+      };
+    case 'NEXT_IMAGE':
+      // Logic for next image will be handled with category data in component
+      return state;
+    case 'PREV_IMAGE':
+      // Logic for prev image will be handled with category data in component
+      return state; 
+    case 'RESET_IMAGE_POSITION':
+      return {
+        ...state,
+        imagePosition: { x: 0, y: 0 }
+      };
+    case 'UPDATE_IMAGE_POSITION':
+      return {
+        ...state,
+        imagePosition: action.payload
+      };
+    case 'START_DRAG':
+      return {
+        ...state,
+        dragInfo: {
+          isDragging: true,
+          startX: action.payload,
+          translateX: 0
+        }
+      };
+    case 'UPDATE_DRAG':
+      return {
+        ...state,
+        dragInfo: {
+          ...state.dragInfo,
+          translateX: action.payload - state.dragInfo.startX
+        }
+      };
+    case 'END_DRAG':
+      return {
+        ...state,
+        dragInfo: {
+          isDragging: false,
+          startX: 0,
+          translateX: 0
+        }
+      };
+    case 'SET_IMAGE_LOADED':
+      return {
+        ...state,
+        loadedImages: {
+          ...state.loadedImages,
+          [action.payload.src]: action.payload.loaded
+        }
+      };
+    default:
+      return state;
+  }
+}
+
+// Debug utility
+const logImageLoadEvent = (type: string, src: string, success: boolean) => {
+  console.log(`Image ${type}: ${src} - ${success ? 'Success' : 'Failed'}`);
+};
+
+const PhotoGallery: React.FC = () => {
+  // Your image data - reorganized per requirements
   const imageData: ImageData = {
     "Sunsets & Skies": {
-      "description": "Vibrant sunsets, twilight skies, and nighttime landscapes.",
-      "date": "2023-2024",
       "images": [
         "DM100462.JPG",
         "DM100464.JPG",
@@ -75,38 +161,33 @@ const PhotoAndObsidianViewer: React.FC = () => {
         "DM100793.JPG",
         "DM100852.JPG",
         "DM100853.JPG",
-        "DM100862.JPG"
+        "DM100862.JPG",
+        // Added winter/roads images to this category
+        "DM100982.JPG",
+        "DM100984.JPG"
       ]
     },
-    "Nature & Water": {
-      "description": "Forests, waterfalls, rivers, and lakes.",
-      "date": "2023-2024",
+    "Nature": {
       "images": [
-        "20240422_190429.jpg",
+        "DM100825.JPG", // Set as cover image
+        "20240422_194029.jpg",
         "20240422_194054.jpg",
         "DM100814.JPG",
         "DM100815.JPG",
-        "DM100825.JPG",
         "DM100851.JPG",
-        "DM100844.JPG",
-        "20231013_102817.jpg"
+        "DM100844.JPG"
       ]
     },
-    "Urban & Nightlife": {
-      "description": "Cityscapes, buildings, and urban environments at night.",
-      "date": "2023",
+    "Urban": {
       "images": [
-        "20230308_210251.jpg",
+        "DM100894.JPG", // Set as cover image
         "20230326_004202.jpg",
         "DM100877.JPG",
         "DM100888.JPG",
-        "DM100894.JPG",
         "DM100908.JPG"
       ]
     },
-    "Pets & Animals": {
-      "description": "Cats, dogs, and other animals.",
-      "date": "2023-2024",
+    "Animals": {
       "images": [
         "DM100454.JPG",
         "DM100471.JPG",
@@ -117,1063 +198,286 @@ const PhotoAndObsidianViewer: React.FC = () => {
         "DM100964.JPG",
         "DM100965.JPG"
       ]
-    },
-    "Winter & Roads": {
-      "description": "Snowy landscapes and roads.",
-      "date": "2023",
-      "images": [
-        "DM100982.JPG",
-        "DM100984.JPG"
-      ]
     }
   };
   
-  // Prepare image paths - CHANGED to use /gallery/ instead of /images/
-  const IMAGE_BASE_PATH = "/gallery"; // FIXED path to match your directory structure
-  
-  // State management for photo gallery
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [openCategoryId, setOpenCategoryId] = useState<string | null>(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [translateX, setTranslateX] = useState(0);
-  const [mainImagePosition, setMainImagePosition] = useState({ x: 0, y: 0 });
-  const [isMainImageDragging, setIsMainImageDragging] = useState(false);
-  const [mainImageStartPos, setMainImageStartPos] = useState({ x: 0, y: 0 });
-  const [showInfo, setShowInfo] = useState(false);
-  const [fullScreen, setFullScreen] = useState(false);
-  const [isRotating, setIsRotating] = useState(false);
+  const [state, dispatch] = useReducer(galleryReducer, initialState);
   const [direction, setDirection] = useState(0);
-  const [expandedCards, setExpandedCards] = useState<string[]>([]);
-  const [rotationDegree, setRotationDegree] = useState(0);
-  const [swipeDirection, setSwipeDirection] = useState<null | 'left' | 'right'>(null);
-  const [swipeStartX, setSwipeStartX] = useState(0);
-  const [imageDimensions, setImageDimensions] = useState<{[key: string]: {width: number, height: number}}>({});
+  const [isImageDragging, setIsImageDragging] = useState(false);
+  const [imageStartPos, setImageStartPos] = useState({ x: 0, y: 0 });
   
-  // GitHub repo state management
-  const [repoFiles, setRepoFiles] = useState<GitHubFile[]>([]);
-  const [repoLoading, setRepoLoading] = useState(false);
-  const [repoError, setRepoError] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<GitHubFile | null>(null);
-  const [fileContent, setFileContent] = useState<string | null>(null);
-  const [fileContentLoading, setFileContentLoading] = useState(false);
-  const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
-  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
-  
-  // Motion values for card interactions
-  const cardSpringConfig = { stiffness: 300, damping: 30 };
-  
-  // Refs
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mainImageRef = useRef<HTMLDivElement>(null);
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const cardsContainerRef = useRef<HTMLDivElement>(null);
-  
-  // Fetch GitHub repo data
-  useEffect(() => {
-    const fetchGitHubRepo = async () => {
-      setRepoLoading(true);
-      setRepoError(null);
-      
-      try {
-        // Fetch the repository contents
-        const response = await fetch('https://api.github.com/repos/Mayer-Domminic/obsidian-repo/contents/');
-        
-        if (!response.ok) {
-          throw new Error(`GitHub API error: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        setRepoFiles(data);
-      } catch (error) {
-        console.error('Error fetching GitHub repository:', error);
-        setRepoError(error instanceof Error ? error.message : 'Unknown error');
-      } finally {
-        setRepoLoading(false);
-      }
-    };
-    
-    fetchGitHubRepo();
-  }, []);
-  
-  // Fetch file content when a file is selected
-  useEffect(() => {
-    if (!selectedFile || selectedFile.type !== 'file') return;
-    
-    const fetchFileContent = async () => {
-      setFileContentLoading(true);
-      
-      try {
-        // Only fetch if we have a download URL
-        if (selectedFile.download_url) {
-          const response = await fetch(selectedFile.download_url);
-          
-          if (!response.ok) {
-            throw new Error(`Failed to fetch file content: ${response.status}`);
-          }
-          
-          const content = await response.text();
-          setFileContent(content);
-        } else {
-          setFileContent('Content not available');
-        }
-      } catch (error) {
-        console.error('Error fetching file content:', error);
-        setFileContent(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      } finally {
-        setFileContentLoading(false);
-      }
-    };
-    
-    fetchFileContent();
-  }, [selectedFile]);
-  
-  // Get bounds for draggable cards
-  const getDragConstraints = () => {
-    if (!cardsContainerRef.current) return { top: 0, left: 0, right: 0, bottom: 0 };
-    
-    const containerWidth = cardsContainerRef.current.offsetWidth;
-    return {
-      top: 0,
-      left: -containerWidth * 0.05,
-      right: containerWidth * 0.05,
-      bottom: 0
-    };
+  // Helper to get image URL - fixed to use /public/ directory
+  const getImageUrl = (filename: string, size: 'thumb' | 'full' = 'full') => {
+    // Ensure it starts with a slash
+    return `/${filename}`;
   };
   
-  // Spring rotation
-  const rotationSpring = useSpring(0, cardSpringConfig);
-  useEffect(() => {
-    rotationSpring.set(rotationDegree);
-  }, [rotationDegree]);
-  
-  // Helper to get image URL - FIXED to use the correct path
-  const getImageUrl = (filename: string, category: string) => {
-    // Clean category name for folder structure
-    const categoryFolder = category.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    return `${IMAGE_BASE_PATH}/${categoryFolder}/${filename}`;
-  };
-  
-  // Helper to get cover image for a category
+  // Get cover image for a category
   const getCoverImage = (category: string) => {
-    const fallbackImage = `${IMAGE_BASE_PATH}/placeholder.jpg`;
+    // Custom cover images for specific categories
+    if (category === "Nature") return "DM100825.JPG";
+    if (category === "Urban") return "DM100894.JPG";
     
+    // Default first image for other categories
     if (!imageData[category].images || imageData[category].images.length === 0) {
-      return fallbackImage;
+      return '';
     }
-    
-    return getImageUrl(imageData[category].images[0], category);
+    return imageData[category].images[0];
   };
   
-  // Toggle card expansion in overview
-  const toggleCardExpansion = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (expandedCards.includes(id)) {
-      setExpandedCards(expandedCards.filter(cardId => cardId !== id));
-    } else {
-      setExpandedCards([...expandedCards, id]);
-    }
+  // Filter out any images that failed to load
+  const getFilteredImages = (category: string) => {
+    if (!category || !imageData[category]) return [];
+    return imageData[category].images.filter(img => {
+      const imgUrl = getImageUrl(img);
+      return state.loadedImages[imgUrl] !== false; // Keep if not explicitly marked as failed
+    });
   };
   
-  // Toggle folder expansion in repo view
-  const toggleFolderExpansion = (path: string) => {
-    if (expandedFolders.includes(path)) {
-      setExpandedFolders(expandedFolders.filter(folder => folder !== path));
-    } else {
-      setExpandedFolders([...expandedFolders, path]);
-    }
-  };
-  
-  // Open a category with animation sequence
-  const openCategory = (category: string) => {
-    // First mark which category is being opened for animation
-    setOpenCategoryId(category);
-    
-    // After initial animation completes, set the full selected category state
-    setTimeout(() => {
-      setSelectedCategory(category);
-      setCurrentImageIndex(0);
-      setMainImagePosition({ x: 0, y: 0 });
-      setRotationDegree(0);
-      setTimeout(() => setIsRotating(true), 1000);
-      document.body.style.overflow = 'hidden';
-    }, 400);
-  };
-  
-  // Close the current category view
-  const closeCategory = () => {
-    setIsRotating(false);
-    document.body.style.overflow = '';
-    
-    // Set openCategoryId to null first for closing animation
-    setTimeout(() => {
-      setSelectedCategory(null);
-      setCurrentImageIndex(0);
-      setFullScreen(false);
-      setOpenCategoryId(null);
-    }, 400);
-  };
-  
-  // Navigation functions
+  // Navigation functions with simplified logic
   const handlePrev = () => {
-    if (!isMainImageDragging && selectedCategory) {
+    if (!isImageDragging && state.selectedCategory) {
       setDirection(-1);
-      setIsRotating(false);
-      setRotationDegree(0);
-      
-      setTimeout(() => {
-        setCurrentImageIndex((prev) => 
-          prev === 0 ? imageData[selectedCategory].images.length - 1 : prev - 1
-        );
-        resetMainImagePosition();
-        setIsRotating(true);
-      }, 300);
+      const images = getFilteredImages(state.selectedCategory);
+      const newIndex = state.currentImageIndex === 0 ? images.length - 1 : state.currentImageIndex - 1;
+      dispatch({ type: 'SET_CURRENT_IMAGE', payload: newIndex });
     }
   };
 
   const handleNext = () => {
-    if (!isMainImageDragging && selectedCategory) {
+    if (!isImageDragging && state.selectedCategory) {
       setDirection(1);
-      setIsRotating(false);
-      setRotationDegree(0);
-      
-      setTimeout(() => {
-        setCurrentImageIndex((prev) => 
-          prev === imageData[selectedCategory].images.length - 1 ? 0 : prev + 1
-        );
-        resetMainImagePosition();
-        setIsRotating(true);
-      }, 300);
+      const images = getFilteredImages(state.selectedCategory);
+      const newIndex = state.currentImageIndex === images.length - 1 ? 0 : state.currentImageIndex + 1;
+      dispatch({ type: 'SET_CURRENT_IMAGE', payload: newIndex });
     }
   };
   
-  // Reset image position and rotation
-  const resetMainImagePosition = () => {
-    setMainImagePosition({ x: 0, y: 0 });
-    setRotationDegree(0);
+  // Open a category with simplified animation sequence
+  const openCategory = (category: string) => {
+    console.log(`Opening category: ${category}`);
+    const scrollY = window.scrollY;
+    console.log(`Current scroll position: ${scrollY}px`);
+    document.body.style.overflow = 'hidden';
+    
+    // Update initial state for filtered images to ensure we have valid images
+    const filteredImages = imageData[category].images.filter(img => {
+      const imgUrl = getImageUrl(img);
+      return state.loadedImages[imgUrl] !== false;
+    });
+    
+    console.log(`Found ${filteredImages.length} valid images in category`);
+    dispatch({ type: 'OPEN_CATEGORY', payload: { category, scrollY } });
   };
   
-  // Handle rotation based on drag gesture
-  const handleRotation = (offsetX: number) => {
-    // Calculate rotation based on horizontal drag
-    const maxRotation = 25; // Maximum rotation in degrees
-    const dampenFactor = 0.5; // Dampen the rotation effect
+  // Close the current category view
+  const closeCategory = () => {
+    console.log('Closing category');
+    document.body.style.overflow = '';
     
-    // Map the x position to a rotation angle
-    const newRotation = offsetX * dampenFactor;
+    // Scroll back to the original position
+    setTimeout(() => {
+      window.scrollTo({ top: state.scrollPosition, behavior: 'auto' });
+    }, 100);
     
-    // Limit rotation to max values
-    setRotationDegree(
-      Math.min(Math.max(newRotation, -maxRotation), maxRotation)
-    );
+    dispatch({ type: 'CLOSE_CATEGORY' });
   };
   
-  // Keyboard navigation
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (selectedCategory) {
-      if (e.key === 'ArrowLeft') handlePrev();
-      if (e.key === 'ArrowRight') handleNext();
-      if (e.key === 'Escape') closeCategory();
-    }
+  // Image load handler
+  const handleImageLoad = (src: string) => {
+    logImageLoadEvent('LOAD', src, true);
+    dispatch({ 
+      type: 'SET_IMAGE_LOADED', 
+      payload: { src, loaded: true } 
+    });
   };
   
-  // Handle swipe for rotation
-  const handleSwipeStart = (e: React.TouchEvent | React.MouseEvent) => {
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    setSwipeStartX(clientX);
-    setSwipeDirection(null);
+  // Image error handler
+  const handleImageError = (src: string) => {
+    logImageLoadEvent('ERROR', src, false);
+    console.error(`Failed to load image: ${src}`);
+    dispatch({ 
+      type: 'SET_IMAGE_LOADED', 
+      payload: { src, loaded: false } 
+    });
   };
   
-  const handleSwipeMove = (e: React.TouchEvent | React.MouseEvent) => {
-    if (swipeStartX === 0) return;
-    
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const deltaX = clientX - swipeStartX;
-    
-    // Calculate rotation based on swipe
-    handleRotation(deltaX);
-    
-    // Determine swipe direction for potential image change
-    if (Math.abs(deltaX) > 50) {
-      setSwipeDirection(deltaX > 0 ? 'right' : 'left');
-    } else {
-      setSwipeDirection(null);
-    }
-  };
-  
-  const handleSwipeEnd = () => {
-    // If significant rotation/swipe, change image
-    if (swipeDirection === 'left' && rotationDegree < -15) {
-      handleNext();
-    } else if (swipeDirection === 'right' && rotationDegree > 15) {
-      handlePrev();
-    } else {
-      // Reset rotation with spring animation
-      setRotationDegree(0);
-    }
-    
-    // Reset swipe tracking
-    setSwipeStartX(0);
-    setSwipeDirection(null);
-  };
-  
-  // Gallery navigation drag handlers
-  const handleGalleryMouseDown = (e: React.MouseEvent) => {
-    if (!isMainImageDragging) {
-      setIsDragging(true);
-      setStartX(e.clientX);
-    }
+  // Main image dragging handlers (simplified)
+  const handleImageMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsImageDragging(true);
+    setImageStartPos({
+      x: e.clientX - state.imagePosition.x,
+      y: e.clientY - state.imagePosition.y
+    });
   };
 
-  const handleGalleryTouchStart = (e: React.TouchEvent) => {
-    if (!isMainImageDragging) {
-      setIsDragging(true);
-      setStartX(e.touches[0].clientX);
+  const handleImageMouseMove = (e: React.MouseEvent) => {
+    if (!isImageDragging) return;
+    e.stopPropagation();
+    
+    // Calculate new position with limits
+    const maxDragDistance = 100;
+    const newX = Math.min(Math.max(e.clientX - imageStartPos.x, -maxDragDistance), maxDragDistance);
+    const newY = Math.min(Math.max(e.clientY - imageStartPos.y, -maxDragDistance), maxDragDistance);
+    
+    dispatch({ 
+      type: 'UPDATE_IMAGE_POSITION', 
+      payload: { x: newX, y: newY }
+    });
+  };
+
+  const handleImageDragEnd = () => {
+    if (!isImageDragging) return;
+    setIsImageDragging(false);
+    
+    // If dragged significantly left/right, navigate to next/prev image
+    if (state.imagePosition.x < -50) {
+      handleNext();
+    } else if (state.imagePosition.x > 50) {
+      handlePrev();
+    }
+    
+    // Reset image position with animation
+    dispatch({ type: 'RESET_IMAGE_POSITION' });
+  };
+  
+  // Gallery navigation with simple swipe detection
+  const handleGalleryMouseDown = (e: React.MouseEvent) => {
+    if (!isImageDragging) {
+      dispatch({ type: 'START_DRAG', payload: e.clientX });
     }
   };
 
   const handleGalleryMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    const currentX = e.clientX;
-    const diff = currentX - startX;
-    setTranslateX(diff);
-  };
-
-  const handleGalleryTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    const currentX = e.touches[0].clientX;
-    const diff = currentX - startX;
-    setTranslateX(diff);
+    if (state.dragInfo.isDragging) {
+      dispatch({ type: 'UPDATE_DRAG', payload: e.clientX });
+    }
   };
 
   const handleGalleryDragEnd = () => {
-    if (!isDragging) return;
+    if (!state.dragInfo.isDragging) return;
     
-    if (translateX > 100) {
+    if (state.dragInfo.translateX > 100) {
       handlePrev();
-    } else if (translateX < -100) {
+    } else if (state.dragInfo.translateX < -100) {
       handleNext();
     }
     
-    setIsDragging(false);
-    setTranslateX(0);
+    dispatch({ type: 'END_DRAG' });
   };
   
-  // Main image dragging handlers
-  const handleMainImageMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsMainImageDragging(true);
-    setMainImageStartPos({
-      x: e.clientX - mainImagePosition.x,
-      y: e.clientY - mainImagePosition.y
-    });
-  };
-
-  const handleMainImageTouchStart = (e: React.TouchEvent) => {
-    e.stopPropagation();
-    setIsMainImageDragging(true);
-    setMainImageStartPos({
-      x: e.touches[0].clientX - mainImagePosition.x,
-      y: e.touches[0].clientY - mainImagePosition.y
-    });
-  };
-
-  const handleMainImageMouseMove = (e: React.MouseEvent) => {
-    if (!isMainImageDragging) return;
-    e.stopPropagation();
-    
-    // Calculate new position with limits 
-    const maxDragDistance = 100;
-    const newX = Math.min(Math.max(e.clientX - mainImageStartPos.x, -maxDragDistance), maxDragDistance);
-    const newY = Math.min(Math.max(e.clientY - mainImageStartPos.y, -maxDragDistance), maxDragDistance);
-    
-    // Set position and calculate rotation
-    setMainImagePosition({
-      x: newX,
-      y: newY
-    });
-    
-    // Add rotation based on horizontal movement
-    handleRotation(newX);
-  };
-
-  const handleMainImageTouchMove = (e: React.TouchEvent) => {
-    if (!isMainImageDragging) return;
-    e.stopPropagation();
-    
-    const maxDragDistance = 100;
-    const newX = Math.min(Math.max(e.touches[0].clientX - mainImageStartPos.x, -maxDragDistance), maxDragDistance);
-    const newY = Math.min(Math.max(e.touches[0].clientY - mainImageStartPos.y, -maxDragDistance), maxDragDistance);
-    
-    setMainImagePosition({
-      x: newX,
-      y: newY
-    });
-    
-    // Add rotation based on horizontal movement
-    handleRotation(newX);
-  };
-
-  const handleMainImageDragEnd = () => {
-    if (!isMainImageDragging) return;
-    setIsMainImageDragging(false);
-    
-    // Gradually reset rotation
-    setRotationDegree(0);
-  };
-  
-  // Set up event listeners
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('mouseup', () => {
-      handleGalleryDragEnd();
-      handleMainImageDragEnd();
-      handleSwipeEnd();
-    });
-    
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('mouseup', () => {
-        handleGalleryDragEnd();
-        handleMainImageDragEnd();
-        handleSwipeEnd();
-      });
-    };
-  }, [isDragging, isMainImageDragging, selectedCategory, currentImageIndex, rotationDegree, swipeDirection]);
+    // Scroll handling for gallery opening
+    if (state.selectedCategory) {
+      // When gallery opens, ensure it's visible at the current scroll position
+      const handleResize = () => {
+        if (state.selectedCategory) {
+          // Adjust overlay position if window size changes
+          const overlayEl = document.querySelector('.gallery-overlay');
+          if (overlayEl) {
+            overlayEl.scrollIntoView({ behavior: 'auto', block: 'start' });
+          }
+        }
+      };
+
+      window.addEventListener('resize', handleResize);
+      return () => {
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+  }, [state.selectedCategory]);
   
   // Categories array
   const categories = Object.keys(imageData);
   
-  // Recursive component to render file tree
-  const FileTree = ({ files, basePath = '' }: { files: GitHubFile[], basePath?: string }) => {
-    // Group files by folder
-    const folders: { [key: string]: GitHubFile[] } = {};
-    const rootFiles: GitHubFile[] = [];
-    
-    // First pass: identify folders and root files
-    files.forEach(file => {
-      if (basePath && !file.path.startsWith(basePath)) return;
-      
-      const relativePath = basePath ? file.path.slice(basePath.length) : file.path;
-      const pathParts = relativePath.split('/').filter(Boolean);
-      
-      if (pathParts.length === 0) return;
-      
-      if (pathParts.length === 1) {
-        rootFiles.push(file);
-      } else {
-        const folderName = pathParts[0];
-        if (!folders[folderName]) {
-          folders[folderName] = [];
-        }
-      }
-    });
-    
-    // Second pass: assign files to folders
-    files.forEach(file => {
-      if (basePath && !file.path.startsWith(basePath)) return;
-      
-      const relativePath = basePath ? file.path.slice(basePath.length) : file.path;
-      const pathParts = relativePath.split('/').filter(Boolean);
-      
-      if (pathParts.length > 1) {
-        const folderName = pathParts[0];
-        const folderPath = basePath ? `${basePath}${folderName}/` : `${folderName}/`;
-        
-        // Only include if this file belongs directly to this folder level
-        if (pathParts.length === 2) {
-          folders[folderName].push(file);
-        }
-      }
-    });
-    
-    // Sort folders and files
-    const sortedFolderNames = Object.keys(folders).sort();
-    const sortedRootFiles = rootFiles.sort((a, b) => a.path.localeCompare(b.path));
-    
-    return (
-      <div className="space-y-1">
-        {/* Render folders */}
-        {sortedFolderNames.map(folderName => {
-          const folderPath = basePath ? `${basePath}${folderName}/` : `${folderName}/`;
-          const isExpanded = expandedFolders.includes(folderPath);
-          
-          return (
-            <div key={folderPath}>
-              <div 
-                className="flex items-center py-1.5 px-2 rounded-md hover:bg-zinc-800/50 cursor-pointer text-zinc-200"
-                onClick={() => toggleFolderExpansion(folderPath)}
-              >
-                {isExpanded ? 
-                  <FolderOpen size={16} className="mr-2 text-blue-400" /> : 
-                  <Folder size={16} className="mr-2 text-blue-400" />
-                }
-                <span className="text-sm">{folderName}</span>
-              </div>
-              
-              {isExpanded && (
-                <div className="ml-4 pl-2 border-l border-zinc-800">
-                  <FileTree files={files} basePath={folderPath} />
-                </div>
-              )}
-            </div>
-          );
-        })}
-        
-        {/* Render files */}
-        {sortedRootFiles.map(file => {
-          const isMarkdown = file.path.endsWith('.md');
-          const isSelected = selectedFile?.path === file.path;
-          
-          return (
-            <div 
-              key={file.path}
-              className={cn(
-                "flex items-center py-1.5 px-2 rounded-md cursor-pointer text-sm",
-                isSelected ? "bg-zinc-800 text-white" : "text-zinc-300 hover:bg-zinc-800/50 hover:text-white"
-              )}
-              onClick={() => setSelectedFile(file)}
-            >
-              <FileText size={16} className={cn(
-                "mr-2", 
-                isMarkdown ? "text-green-400" : "text-orange-400"
-              )} />
-              {file.path.split('/').pop()}
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-  
-  // Render markdown with basic formatting
-  const renderMarkdown = (content: string) => {
-    if (!content) return null;
-    
-    // Split into lines for processing
-    const lines = content.split('\n');
-    const processedLines = lines.map((line, index) => {
-      // Headers
-      if (line.startsWith('# ')) {
-        return <h1 key={index} className="text-2xl font-bold mt-6 mb-4">{line.substring(2)}</h1>;
-      }
-      if (line.startsWith('## ')) {
-        return <h2 key={index} className="text-xl font-bold mt-5 mb-3">{line.substring(3)}</h2>;
-      }
-      if (line.startsWith('### ')) {
-        return <h3 key={index} className="text-lg font-bold mt-4 mb-2">{line.substring(4)}</h3>;
-      }
-      
-      // Lists
-      if (line.startsWith('- ')) {
-        return <li key={index} className="ml-6 mb-1">{line.substring(2)}</li>;
-      }
-      if (line.match(/^\d+\. /)) {
-        const content = line.replace(/^\d+\. /, '');
-        return <li key={index} className="ml-6 mb-1 list-decimal">{content}</li>;
-      }
-      
-      // Links - basic support
-      const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
-      if (line.match(linkPattern)) {
-        const parts = [];
-        let lastIndex = 0;
-        let match;
-        
-        const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-        while ((match = linkRegex.exec(line)) !== null) {
-          // Text before link
-          if (match.index > lastIndex) {
-            parts.push(line.substring(lastIndex, match.index));
-          }
-          
-          // Link element
-          parts.push(
-            <a 
-              key={`link-${match.index}`}
-              href={match[2]} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-400 hover:underline"
-            >
-              {match[1]}
-            </a>
-          );
-          
-          lastIndex = match.index + match[0].length;
-        }
-        
-        // Text after last link
-        if (lastIndex < line.length) {
-          parts.push(line.substring(lastIndex));
-        }
-        
-        return <p key={index} className="mb-3">{parts}</p>;
-      }
-      
-      // Empty line creates spacing
-      if (line.trim() === '') {
-        return <div key={index} className="h-4"></div>;
-      }
-      
-      // Default paragraph
-      return <p key={index} className="mb-3">{line}</p>;
-    });
-    
-    return <div className="markdown-content">{processedLines}</div>;
-  };
-  
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-900 to-black text-white">
-      {/* Header with tabs */}
-      <header className="w-full p-4 md:p-6 flex flex-col space-y-4 z-10 relative">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-light tracking-wider">Mayer Dominic</h1>
-          <div className="flex items-center space-x-2">
-            <a 
-              href="https://github.com/Mayer-Domminic/obsidian-repo" 
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center text-xs text-zinc-400 hover:text-white transition-colors"
+    <div id="photo-section" className="mb-16">
+      <div className="mb-8 font-mono">
+        <span className="text-blue-400">const</span>{' '}
+        <span className="text-purple-400">gallery</span>{' '}
+        <span className="text-blue-400">=</span>{' '}
+        <span className="text-green-400">'</span>
+        <span className="text-white">My Photos</span>
+        <span className="text-green-400">'</span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {categories.map((category) => (
+          <Card
+            key={category}
+            className="h-full bg-gray-800/50 border-gray-700 hover:border-blue-500 overflow-hidden relative group transition-all duration-300 transform hover:-translate-y-1 z-10"
+          >
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              onClick={() => openCategory(category)}
+              className="h-full relative cursor-pointer"
             >
-              <Github size={16} className="mr-1" />
-              <span className="hidden md:inline">GitHub</span>
-            </a>
-          </div>
-        </div>
-        
-        <Tabs defaultValue="photos" className="w-full">
-          <TabsList className="bg-zinc-800/60 grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="photos">Photo Gallery</TabsTrigger>
-            <TabsTrigger value="obsidian">Obsidian Vault</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="photos" className="border-none p-0 outline-none">
-            {/* Main grid of interactive category cards */}
-            <div className="container mx-auto px-4 py-4" ref={cardsContainerRef}>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {categories.map((category) => {
-                  const isExpanded = expandedCards.includes(category);
-                  const isOpening = openCategoryId === category;
-                  const categoryData = imageData[category];
-                  
-                  return (
-                    <motion.div
-                      key={category}
-                      layoutId={`category-card-${category}`}
-                      className={`${
-                        isOpening ? 'z-50' : 'z-10'
-                      }`}
-                      animate={isOpening ? {
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        width: '100vw',
-                        height: '100vh',
-                        borderRadius: 0,
-                        zIndex: 50
-                      } : {
-                        position: 'relative',
-                        width: 'auto',
-                        height: 'auto',
-                        zIndex: isExpanded ? 20 : 10
-                      }}
-                      transition={{
-                        type: 'spring',
-                        stiffness: 300,
-                        damping: 30,
-                        duration: 0.5
-                      }}
-                    >
-                      <Card
-                        className={`h-full bg-zinc-900/40 border-zinc-800 overflow-hidden cursor-grab relative group active:cursor-grabbing ${
-                          isExpanded ? 'ring-2 ring-white/30 shadow-xl' : ''
-                        }`}
-                      >
-                        <motion.div 
-                          drag={!isOpening && !selectedCategory}
-                          dragConstraints={getDragConstraints()}
-                          dragElastic={0.1}
-                          whileDrag={{ scale: 1.02, cursor: 'grabbing' }}
-                          whileHover={{ scale: isExpanded ? 1 : 1.02 }}
-                          onClick={() => !isExpanded && openCategory(category)}
-                          className="h-full relative"
-                        >
-                          <div className={`relative aspect-[3/4] overflow-hidden ${
-                            isExpanded ? 'rounded-t-lg' : 'rounded-lg'
-                          }`}>
-                            <motion.img
-                              src={getCoverImage(category)}
-                              alt={`${category} cover image`}
-                              className="w-full h-full object-cover pointer-events-none"
-                              layoutId={`category-image-${category}`}
-                              animate={{ 
-                                scale: isExpanded ? 1.05 : 1
-                              }}
-                              transition={{ duration: 0.3 }}
-                              onError={(e) => {
-                                // Fallback if image fails to load
-                                (e.target as HTMLImageElement).src = `${IMAGE_BASE_PATH}/placeholder.jpg`;
-                              }}
-                            />
-                            
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-80" />
-                            
-                            <motion.div 
-                              className="absolute bottom-0 left-0 w-full p-4"
-                              initial={{ y: 10, opacity: 0 }}
-                              animate={{ y: 0, opacity: 1 }}
-                              transition={{ delay: 0.1 }}
-                            >
-                              {categoryData.date && (
-                                <Badge variant="outline" className="mb-2 text-xs bg-black/50 text-white border-zinc-500">
-                                  {categoryData.date}
-                                </Badge>
-                              )}
-                              <h3 className="text-lg font-medium text-white">{category}</h3>
-                              <motion.div 
-                                className="flex items-center mt-1 text-xs text-zinc-300"
-                                animate={{ opacity: isExpanded ? 0 : 1 }}
-                              >
-                                <span>{categoryData.images.length} photos</span>
-                              </motion.div>
-                            </motion.div>
-                            
-                            {/* Quick expand button */}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="absolute top-3 right-3 bg-black/40 rounded-full w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                              onClick={(e) => toggleCardExpansion(category, e)}
-                            >
-                              {isExpanded ? 
-                                <ChevronLeft size={16} /> : 
-                                <Info size={16} />
-                              }
-                            </Button>
-                          </div>
-                          
-                          {/* Expanded card content */}
-                          <motion.div
-                            className="bg-zinc-900/90 backdrop-blur-sm p-4 overflow-hidden"
-                            initial={{ height: 0 }}
-                            animate={{ 
-                              height: isExpanded ? 'auto' : 0,
-                            }}
-                            transition={{ duration: 0.3, ease: "easeInOut" }}
-                          >
-                            <p className="text-zinc-200 text-sm mb-3">{categoryData.description}</p>
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs text-zinc-400">{categoryData.images.length} photos</span>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="text-xs h-8 border-zinc-700"
-                                onClick={() => openCategory(category)}
-                              >
-                                View Gallery
-                              </Button>
-                            </div>
-                          </motion.div>
-                        </motion.div>
-                      </Card>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="obsidian" className="border-none p-0 outline-none">
-            {/* Obsidian Repository Viewer */}
-            <div className="container mx-auto px-4 py-4">
-              {/* Mobile view with slide-out sidebar */}
-              <div className="md:hidden flex items-center mb-4">
-                <Sheet open={showMobileSidebar} onOpenChange={setShowMobileSidebar}>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="sm" className="mr-2">
-                      <Menu size={18} />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-[280px] p-0 bg-zinc-900 border-zinc-800">
-                    <div className="h-full flex flex-col overflow-hidden">
-                      <div className="p-4 border-b border-zinc-800">
-                        <h2 className="text-lg font-medium flex items-center">
-                          <Github size={18} className="mr-2" />
-                          Repository Files
-                        </h2>
-                      </div>
-                      <div className="flex-1 overflow-y-auto p-4">
-                        {repoLoading ? (
-                          <div className="space-y-2">
-                            <Skeleton className="h-6 w-full bg-zinc-800" />
-                            <Skeleton className="h-6 w-5/6 bg-zinc-800" />
-                            <Skeleton className="h-6 w-4/6 bg-zinc-800" />
-                          </div>
-                        ) : repoError ? (
-                          <div className="text-red-400 text-sm p-2">
-                            Error: {repoError}
-                          </div>
-                        ) : (
-                          <FileTree files={repoFiles} />
-                        )}
-                      </div>
-                    </div>
-                  </SheetContent>
-                </Sheet>
+              <div className="relative aspect-[3/4] overflow-hidden rounded-lg">
+                <img
+                  src={getImageUrl(getCoverImage(category))}
+                  alt={`${category} cover`}
+                  className="w-full h-full object-cover pointer-events-none"
+                  onLoad={(e) => handleImageLoad((e.target as HTMLImageElement).src)}
+                  onError={(e) => handleImageError((e.target as HTMLImageElement).src)}
+                />
                 
-                <h2 className="text-lg font-medium">
-                  {selectedFile ? (
-                    <span className="text-sm">
-                      {selectedFile.path.split('/').pop()}
-                    </span>
-                  ) : (
-                    'Obsidian Vault'
-                  )}
-                </h2>
-              </div>
-              
-              {/* Desktop layout */}
-              <div className="hidden md:grid grid-cols-1 md:grid-cols-4 gap-6">
-                {/* Sidebar - File Browser */}
-                <div className="bg-zinc-900/40 border border-zinc-800 rounded-lg overflow-hidden">
-                  <div className="p-4 border-b border-zinc-800">
-                    <h2 className="text-sm font-medium flex items-center">
-                      <Github size={16} className="mr-2" />
-                      Repository Files
-                    </h2>
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-gray-900/30 to-transparent" />
+                
+                <div className="absolute bottom-0 left-0 w-full p-4">
+                  <div className="flex items-center gap-3">
+                    <Camera className="h-5 w-5 text-purple-400" />
+                    <h3 className="text-lg font-medium text-white">{category}</h3>
                   </div>
-                  
-                  <div className="p-4 h-[600px] overflow-y-auto">
-                    {repoLoading ? (
-                      <div className="space-y-2">
-                        <Skeleton className="h-6 w-full bg-zinc-800" />
-                        <Skeleton className="h-6 w-5/6 bg-zinc-800" />
-                        <Skeleton className="h-6 w-4/6 bg-zinc-800" />
-                      </div>
-                    ) : repoError ? (
-                      <div className="text-red-400 text-sm p-2">
-                        Error: {repoError}
-                      </div>
-                    ) : (
-                      <FileTree files={repoFiles} />
-                    )}
+                  <div className="flex items-center mt-1 text-xs text-gray-300">
+                    <span>{getFilteredImages(category).length} photos</span>
                   </div>
                 </div>
-                
-                {/* Main Content - File Viewer */}
-                <div className="md:col-span-3 bg-zinc-900/40 border border-zinc-800 rounded-lg overflow-hidden">
-                  {selectedFile ? (
-                    <div className="h-full flex flex-col">
-                      <div className="p-4 border-b border-zinc-800 flex justify-between items-center">
-                        <h2 className="text-sm font-medium flex items-center">
-                          <FileText size={16} className="mr-2" />
-                          {selectedFile.path}
-                        </h2>
-                        
-                        {selectedFile.html_url && (
-                          <a 
-                            href={selectedFile.html_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-zinc-400 hover:text-white flex items-center"
-                          >
-                            <ExternalLink size={14} className="mr-1" />
-                            View on GitHub
-                          </a>
-                        )}
-                      </div>
-                      
-                      <div className="p-4 overflow-y-auto h-[550px]">
-                        {fileContentLoading ? (
-                          <div className="space-y-3">
-                            <Skeleton className="h-5 w-full bg-zinc-800" />
-                            <Skeleton className="h-5 w-5/6 bg-zinc-800" />
-                            <Skeleton className="h-5 w-4/6 bg-zinc-800" />
-                            <Skeleton className="h-5 w-3/4 bg-zinc-800" />
-                          </div>
-                        ) : (
-                          <div className="text-zinc-200 text-sm">
-                            {selectedFile.path.endsWith('.md') ? (
-                              renderMarkdown(fileContent || '')
-                            ) : (
-                              <pre className="font-mono text-xs whitespace-pre-wrap bg-zinc-800 p-4 rounded-md overflow-x-auto">
-                                {fileContent}
-                              </pre>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="h-[600px] flex flex-col items-center justify-center text-zinc-400">
-                      <FileText size={48} className="mb-4 opacity-20" />
-                      <p className="text-lg">Select a file from the repository</p>
-                      <p className="text-sm mt-2">View your Obsidian notes and other files</p>
-                    </div>
-                  )}
-                </div>
               </div>
-              
-              {/* Mobile content view */}
-              <div className="md:hidden">
-                {selectedFile ? (
-                  <div className="bg-zinc-900/40 border border-zinc-800 rounded-lg overflow-hidden">
-                    <div className="p-4 overflow-y-auto max-h-[70vh]">
-                      {fileContentLoading ? (
-                        <div className="space-y-3">
-                          <Skeleton className="h-5 w-full bg-zinc-800" />
-                          <Skeleton className="h-5 w-5/6 bg-zinc-800" />
-                          <Skeleton className="h-5 w-4/6 bg-zinc-800" />
-                        </div>
-                      ) : (
-                        <div className="text-zinc-200 text-sm">
-                          {selectedFile.path.endsWith('.md') ? (
-                            renderMarkdown(fileContent || '')
-                          ) : (
-                            <pre className="font-mono text-xs whitespace-pre-wrap bg-zinc-800 p-4 rounded-md overflow-x-auto">
-                              {fileContent}
-                            </pre>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="h-[60vh] flex flex-col items-center justify-center text-zinc-400 bg-zinc-900/40 border border-zinc-800 rounded-lg">
-                    <FileText size={48} className="mb-4 opacity-20" />
-                    <p className="text-center px-4">Select a file from the repository using the menu button</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </header>
+            </motion.div>
+          </Card>
+        ))}
+      </div>
       
-      {/* Category Detail View */}
+      {/* Gallery Overlay - Fixed Position with Simple Animation */}
       <AnimatePresence>
-        {selectedCategory && (
+        {state.selectedCategory && (
           <motion.div 
-            className={`fixed inset-0 z-50 flex flex-col ${fullScreen ? 'p-0' : 'p-4'}`}
+            className="fixed inset-0 z-50 gallery-overlay flex flex-col p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            style={{ 
-              backgroundColor: 'rgba(0,0,0,0.95)',
-            }}
+            style={{ backgroundColor: 'rgba(17, 24, 39, 0.95)' }}
           >
             {/* Controls */}
-            <div className={`flex justify-between items-center ${fullScreen ? 'p-4' : 'py-2'} transition-all duration-300`}>
+            <div className="flex justify-between items-center py-2">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={closeCategory}
-                className="rounded-full bg-black/40 hover:bg-black/60 text-white"
+                className="rounded-full bg-gray-800/40 hover:bg-gray-800/60 text-white"
               >
                 <X size={18} />
               </Button>
               
               <div className="flex items-center">
-                <h2 className="text-lg font-medium mr-4">{selectedCategory}</h2>
-                <div className="flex space-x-2">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setRotationDegree(0);
-                            resetMainImagePosition();
-                          }}
-                          className="rounded-full bg-black/40 hover:bg-black/60 text-white"
-                        >
-                          <RotateCcw size={18} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Reset image position</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setShowInfo(!showInfo)}
-                          className="rounded-full bg-black/40 hover:bg-black/60 text-white"
-                        >
-                          <Info size={18} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Toggle info</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setFullScreen(!fullScreen)}
-                          className="rounded-full bg-black/40 hover:bg-black/60 text-white"
-                        >
-                          {fullScreen ? <Minimize size={18} /> : <Maximize size={18} />}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Toggle fullscreen</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
+                <h2 className="text-lg font-medium mr-4 text-white">{state.selectedCategory}</h2>
               </div>
             </div>
             
-            {/* Category Info Panel */}
-            <AnimatePresence>
-              {showInfo && (
-                <motion.div
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="bg-black/60 backdrop-blur-md p-4 rounded-lg mb-4 max-w-xl mx-auto w-full"
-                >
-                  <h2 className="text-xl font-medium mb-2">{selectedCategory}</h2>
-                  {imageData[selectedCategory].date && (
-                    <div className="text-zinc-300 text-sm mb-3">
-                      Date: {imageData[selectedCategory].date}
-                    </div>
-                  )}
-                  <p className="text-zinc-200 text-sm">{imageData[selectedCategory].description}</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
             <div className="flex-1 flex flex-col justify-center">
               {/* Image count indicator */}
-              <div className="absolute top-4 right-4 z-10 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
-                {currentImageIndex + 1} / {imageData[selectedCategory].images.length}
+              <div className="absolute top-4 right-4 z-10 bg-gray-800/50 text-white text-xs px-2 py-1 rounded-full">
+                {state.currentImageIndex + 1} / {getFilteredImages(state.selectedCategory).length}
               </div>
               
               {/* Main content area with image display */}
-              <div className="relative w-full flex-1 flex flex-col items-center justify-center overflow-hidden" ref={containerRef}>
+              <div className="relative w-full flex-1 flex flex-col items-center justify-center overflow-hidden">
                 {/* Navigation buttons */}
                 <Button 
                   onClick={handlePrev}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/50 border-none rounded-full w-10 h-10 p-0 flex items-center justify-center"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-gray-800/30 hover:bg-gray-800/50 border-none rounded-full w-10 h-10 p-0 flex items-center justify-center"
                   variant="outline"
                   size="icon"
                 >
@@ -1182,7 +486,7 @@ const PhotoAndObsidianViewer: React.FC = () => {
                 
                 <Button 
                   onClick={handleNext}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/50 border-none rounded-full w-10 h-10 p-0 flex items-center justify-center"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-gray-800/30 hover:bg-gray-800/50 border-none rounded-full w-10 h-10 p-0 flex items-center justify-center"
                   variant="outline"
                   size="icon"
                 >
@@ -1192,217 +496,102 @@ const PhotoAndObsidianViewer: React.FC = () => {
                 {/* Main image display */}
                 <div 
                   className="relative w-full flex-1 flex items-center justify-center"
-                  onMouseDown={(e) => {
-                    handleGalleryMouseDown(e);
-                    handleSwipeStart(e);
-                  }}
-                  onMouseMove={(e) => {
-                    handleGalleryMouseMove(e);
-                    handleSwipeMove(e);
-                  }}
-                  onMouseUp={() => {
-                    handleGalleryDragEnd();
-                    handleSwipeEnd();
-                  }}
-                  onMouseLeave={() => {
-                    handleGalleryDragEnd();
-                    handleSwipeEnd();
-                  }}
-                  onTouchStart={(e) => {
-                    handleGalleryTouchStart(e);
-                    handleSwipeStart(e);
-                  }}
-                  onTouchMove={(e) => {
-                    handleGalleryTouchMove(e);
-                    handleSwipeMove(e);
-                  }}
-                  onTouchEnd={() => {
-                    handleGalleryDragEnd();
-                    handleSwipeEnd();
-                  }}
+                  onMouseDown={handleGalleryMouseDown}
+                  onMouseMove={handleGalleryMouseMove}
+                  onMouseUp={handleGalleryDragEnd}
+                  onMouseLeave={handleGalleryDragEnd}
                   style={{ 
-                    cursor: isDragging ? 'grabbing' : 'grab',
+                    cursor: state.dragInfo.isDragging ? 'grabbing' : 'grab',
                   }}
                 >
                   <div 
                     className="flex items-center justify-center h-full w-full"
                     style={{ 
-                      transform: `translateX(${translateX}px)`,
-                      transition: isDragging ? 'none' : 'transform 0.3s ease-out' 
+                      transform: `translateX(${state.dragInfo.translateX}px)`,
+                      transition: state.dragInfo.isDragging ? 'none' : 'transform 0.3s ease-out' 
                     }}
                   >
                     <AnimatePresence mode="wait">
-                      {selectedCategory && (
+                      {state.selectedCategory && (
                         <motion.div
-                          key={`${selectedCategory}-${currentImageIndex}`}
-                          ref={mainImageRef}
+                          key={`${state.selectedCategory}-${state.currentImageIndex}`}
                           className="cursor-move max-h-full max-w-full relative"
                           style={{
-                            transform: `translate(${mainImagePosition.x}px, ${mainImagePosition.y}px) rotate(${rotationSpring.get()}deg)`,
-                            transition: isMainImageDragging ? 'none' : 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                            transform: `translate(${state.imagePosition.x}px, ${state.imagePosition.y}px)`,
+                            transition: isImageDragging ? 'none' : 'transform 0.3s ease-out'
                           }}
                           initial={{ 
                             opacity: 0,
-                            rotateY: direction * 45,
-                            scale: 0.9
+                            scale: 0.9,
+                            rotateY: direction * 15
                           }}
                           animate={{ 
                             opacity: 1,
-                            rotateY: isRotating ? [0, 5, 0, -5, 0] : 0,
-                            scale: isRotating ? [1, 1.02, 1, 0.98, 1] : 1,
+                            scale: 1,
+                            rotateY: 0
                           }}
                           exit={{ 
                             opacity: 0,
-                            rotateY: direction * -45,
-                            scale: 0.9
+                            scale: 0.9,
+                            rotateY: direction * -15
                           }}
-                          transition={{ 
-                            duration: 0.5,
-                            rotateY: {
-                              duration: isRotating ? 10 : 0.5,
-                              repeat: isRotating ? Infinity : 0,
-                              repeatType: "reverse"
-                            },
-                            scale: {
-                              duration: isRotating ? 8 : 0.5,
-                              repeat: isRotating ? Infinity : 0,
-                              repeatType: "reverse"
-                            }
-                          }}
-                          onMouseDown={handleMainImageMouseDown}
-                          onMouseMove={handleMainImageMouseMove}
-                          onMouseUp={handleMainImageDragEnd}
-                          onMouseLeave={handleMainImageDragEnd}
-                          onTouchStart={handleMainImageTouchStart}
-                          onTouchMove={handleMainImageTouchMove}
-                          onTouchEnd={handleMainImageDragEnd}
+                          transition={{ duration: 0.3 }}
+                          onMouseDown={handleImageMouseDown}
+                          onMouseMove={handleImageMouseMove}
+                          onMouseUp={handleImageDragEnd}
+                          onMouseLeave={handleImageDragEnd}
                         >
-                          <img 
-                            src={getImageUrl(imageData[selectedCategory].images[currentImageIndex], selectedCategory)}
-                            alt={`${selectedCategory} image ${currentImageIndex + 1}`}
-                            className={`rounded-lg shadow-2xl max-h-[70vh] max-w-[90vw] transition-transform duration-300 ${
-                              isMainImageDragging ? 'scale-[1.03]' : ''
-                            }`}
-                            style={{
-                              // Dynamically determine object-fit based on the detected dimensions
-                              objectFit: "contain",
-                              background: "rgba(0,0,0,0.2)"
-                            }}
-                            onError={(e) => {
-                              // Fallback if image fails to load
-                              (e.target as HTMLImageElement).src = `${IMAGE_BASE_PATH}/placeholder.jpg`;
-                            }}
-                            onLoad={(e) => {
-                              // Detect orientation on load
-                              const img = e.target as HTMLImageElement;
-                              const orientation = img.naturalWidth > img.naturalHeight ? 'landscape' : 'portrait';
-                              
-                              // Update the image dimensions for reference
-                              setImageDimensions(prev => ({
-                                ...prev,
-                                [img.src]: { width: img.naturalWidth, height: img.naturalHeight }
-                              }));
-                            }}
-                          />
-                          
-                          {/* Swipe direction indicator overlay */}
-                          <div
-                            className={`absolute inset-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center ${
-                              swipeDirection ? 'opacity-40' : 'opacity-0'
-                            }`}
-                          >
-                            {swipeDirection === 'left' && (
-                              <div className="text-white text-4xl">&larr;</div>
-                            )}
-                            {swipeDirection === 'right' && (
-                              <div className="text-white text-4xl">&rarr;</div>
-                            )}
-                          </div>
+                          {getFilteredImages(state.selectedCategory).length > 0 && (
+                            <img 
+                              src={getImageUrl(getFilteredImages(state.selectedCategory)[state.currentImageIndex])}
+                              alt={`${state.selectedCategory} image ${state.currentImageIndex + 1}`}
+                              className={`rounded-lg shadow-xl max-h-[70vh] max-w-[90vw] ${
+                                isImageDragging ? 'scale-[1.02]' : ''
+                              }`}
+                              style={{
+                                objectFit: "contain",
+                                transition: "transform 0.2s ease"
+                              }}
+                              onLoad={(e) => handleImageLoad((e.target as HTMLImageElement).src)}
+                              onError={(e) => handleImageError((e.target as HTMLImageElement).src)}
+                            />
+                          )}
                         </motion.div>
                       )}
                     </AnimatePresence>
                   </div>
                 </div>
                 
-                {/* Image slider gallery */}
-                <div 
-                  ref={sliderRef} 
-                  className="w-full max-w-4xl mx-auto mt-4 px-10 transition-all duration-300"
-                  style={{
-                    opacity: fullScreen ? 0 : 1,
-                    transform: `translateY(${fullScreen ? '20px' : '0'})`,
-                    height: fullScreen ? '0' : 'auto'
-                  }}
-                >
-                  <div className="relative pb-2">
-                    {/* Thumbnail slider */}
-                    <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-transparent">
-                      {selectedCategory && imageData[selectedCategory].images.map((image, idx) => (
-                        <motion.div
-                          key={`thumb-${selectedCategory}-${idx}`}
+                {/* Thumbnail gallery */}
+                {state.selectedCategory && (
+                  <div className="w-full max-w-4xl mx-auto mt-4 px-2 overflow-x-auto">
+                    <div className="flex space-x-2 pb-2">
+                      {getFilteredImages(state.selectedCategory).map((image, idx) => (
+                        <div
+                          key={`thumb-${idx}`}
                           onClick={() => {
-                            setCurrentImageIndex(idx);
-                            resetMainImagePosition();
-                            setDirection(idx > currentImageIndex ? 1 : -1);
-                            setIsRotating(false);
-                            setTimeout(() => setIsRotating(true), 800);
+                            setDirection(idx > state.currentImageIndex ? 1 : -1);
+                            dispatch({ type: 'SET_CURRENT_IMAGE', payload: idx });
                           }}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
                           className={`shrink-0 cursor-pointer transition-all duration-200 ${
-                            idx === currentImageIndex ? 'ring-2 ring-white' : 'opacity-60 hover:opacity-100'
+                            idx === state.currentImageIndex ? 'ring-2 ring-purple-400' : 'opacity-60 hover:opacity-100'
                           }`}
                         >
-                          <div className="relative w-16 h-16 overflow-hidden rounded-md">
+                          <div className="w-14 h-14 overflow-hidden rounded-md">
                             <img 
-                              src={getImageUrl(image, selectedCategory)}
-                              alt={`${selectedCategory} thumbnail ${idx + 1}`}
+                              src={getImageUrl(image, 'thumb')}
+                              alt={`${state.selectedCategory} thumbnail ${idx + 1}`}
                               className="w-full h-full object-cover"
-                              onError={(e) => {
-                                // Fallback if thumbnail fails to load
-                                (e.target as HTMLImageElement).src = `${IMAGE_BASE_PATH}/placeholder.jpg`;
-                              }}
+                              loading="lazy"
+                              onLoad={(e) => handleImageLoad((e.target as HTMLImageElement).src)}
+                              onError={(e) => handleImageError((e.target as HTMLImageElement).src)}
                             />
                           </div>
-                        </motion.div>
+                        </div>
                       ))}
                     </div>
-                    
-                    {/* Use slider component for larger displays */}
-                    {selectedCategory && (
-                      <div className="hidden md:block mt-2">
-                        <Slider
-                          defaultValue={[0]}
-                          max={imageData[selectedCategory].images.length - 1}
-                          step={1}
-                          value={[currentImageIndex]}
-                          onValueChange={(value) => {
-                            const newIndex = value[0];
-                            if (newIndex !== currentImageIndex) {
-                              setDirection(newIndex > currentImageIndex ? 1 : -1);
-                              setIsRotating(false);
-                              setCurrentImageIndex(newIndex);
-                              resetMainImagePosition();
-                              setTimeout(() => setIsRotating(true), 800);
-                            }
-                          }}
-                          className="w-full"
-                        />
-                      </div>
-                    )}
                   </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Footer with instructions */}
-            <div className={`w-full text-center text-xs text-zinc-500 py-2 transition-opacity duration-300 ${
-              fullScreen ? 'opacity-0' : 'opacity-100'
-            }`}>
-              <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
-                <span>&#8226; Drag image to move</span>
-                <span>&#8226; Swipe left/right to rotate and navigate</span>
-                <span>&#8226; Use slider to browse gallery</span>
+                )}
               </div>
             </div>
           </motion.div>
@@ -1412,4 +601,4 @@ const PhotoAndObsidianViewer: React.FC = () => {
   );
 };
 
-export default PhotoAndObsidianViewer;
+export default PhotoGallery;
