@@ -43,7 +43,7 @@ const hobbies: Hobby[] = [
     description: "Dedicated to personal growth through gym training, exploring new recipes in cooking, and expanding knowledge through reading.",
     icon: Dumbbell,
     action: {
-      text: "Check out my reading list",
+      text: "Check out my lifting journey",
       link: "/interests/improvement"
     }
   },
