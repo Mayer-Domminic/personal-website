@@ -44,7 +44,7 @@ const hobbies: Hobby[] = [
     icon: Dumbbell,
     action: {
       text: "Check out my reading list",
-      link: "#reading-section"
+      link: "/interests/improvement"
     }
   },
   {
@@ -184,14 +184,14 @@ const PortfolioPage: React.FC = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           {/* Hero Section */}
           <div className="mb-8 font-mono">
             <span className="text-blue-400">const</span>{' '}
             <span className="text-purple-400">developer</span>{' '}
             <span className="text-blue-400">=</span>{' '}
             <span className="text-green-400">'</span>
-            <TypewriterText text="Domminic Mayer" />
+            <TypewriterText text="Doomminic Mayer" />
             <span className="text-green-400">'</span>
           </div>
 
@@ -231,33 +231,14 @@ const PortfolioPage: React.FC = () => {
               ))}
             </div>
 
-            {/* Globe Section */}
-            <div id="globe-section" className={`transition-all duration-1000 delay-800 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-              <div className="mb-8 font-mono">
-                <span className="text-blue-400">const</span>{' '}
-                <span className="text-purple-400">whereAmI</span>{' '}
-                <span className="text-blue-400">=</span>{' '}
-                <span className="text-green-400">'</span>
-                <TypewriterText text="Find me" />
-                <span className="text-green-400">'</span>
-              </div>
-
-              <Card className="bg-gray-800/50 border-gray-700 mb-16">
-                <CardHeader>
-                  <CardTitle className="text-2xl text-white">All Around The World</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CustomGlobe />
-                </CardContent>
-              </Card>
-
+            
               {/* Hobbies Section */}
               <div className="mb-8 font-mono">
                 <span className="text-blue-400">const</span>{' '}
                 <span className="text-purple-400">interests</span>{' '}
                 <span className="text-blue-400">=</span>{' '}
                 <span className="text-green-400">'</span>
-                <TypewriterText text="Learn more" />
+                <TypewriterText text="Leearn more" />
                 <span className="text-green-400">'</span>
               </div>
 
@@ -287,6 +268,27 @@ const PortfolioPage: React.FC = () => {
                   ))}
                 </div>
               </div>
+
+            {/* Globe Section */}
+            <div id="globe-section" className={`transition-all duration-1000 delay-800 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+              <div className="mb-8 font-mono">
+                <span className="text-blue-400">const</span>{' '}
+                <span className="text-purple-400">whereAmI</span>{' '}
+                <span className="text-blue-400">=</span>{' '}
+                <span className="text-green-400">'</span>
+                <TypewriterText text="Fiind me" />
+                <span className="text-green-400">'</span>
+              </div>
+
+              <Card className="bg-gray-800/50 border-gray-700 mb-16">
+                <CardHeader>
+                  <CardTitle className="text-2xl text-white">All Around The World</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CustomGlobe />
+                </CardContent>
+              </Card>
+
             </div>
           </div>
         </div>

@@ -12,7 +12,7 @@ const Navbar: React.FC = () => {
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Terminal className="h-6 w-6 text-purple-400" />
-            <span className="text-2xl font-bold text-white">domm.dev</span>
+            <a href="../../"><span className="text-2xl font-bold text-white">domm.dev</span></a>
           </div>
           <div className="flex gap-4">
             <a href="https://github.com/mayer-domminic" target="_blank" rel="noopener noreferrer"
@@ -33,4 +33,4 @@ const Navbar: React.FC = () => {
     );
   };
 
-export default Navbar;
+  export default Navbar;
